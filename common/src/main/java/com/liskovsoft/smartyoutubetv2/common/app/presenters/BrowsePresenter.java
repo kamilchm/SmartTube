@@ -32,6 +32,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.provide
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.interfaces.SectionPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.interfaces.VideoGroupPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.BrowseView;
+import com.liskovsoft.smartyoutubetv2.common.app.models.data.BlocklistRule;
 import com.liskovsoft.smartyoutubetv2.common.misc.AppDataSourceManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.BrowseProcessorManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
@@ -690,7 +691,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                             getView().showProgressBar(false);
 
                             filterHomeIfNeeded(mediaGroups);
-                            filterBlacklistedVideos(mediaGroups);
+                            filterBlockedVideos(mediaGroups);
 
                             for (MediaGroup mediaGroup : mediaGroups) {
                                 if (mediaGroup.isEmpty()) {
@@ -749,10 +750,10 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                             }
 
                             VideoGroup videoGroup = VideoGroup.from(mediaGroup, section, column);
-                            // Apply blacklist filtering for single MediaGroup as well
+                            // Apply blocklist filtering for single MediaGroup as well
                             List<MediaGroup> singleGroupList = new ArrayList<>();
                             singleGroupList.add(mediaGroup);
-                            filterBlacklistedVideos(singleGroupList);
+                            filterBlockedVideos(singleGroupList);
 
                             appendLocalHistory(videoGroup);
                             getView().updateSection(videoGroup);
@@ -1172,13 +1173,15 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         }
     }
 
-    private void filterBlacklistedVideos(List<MediaGroup> mediaGroups) {
+    private void filterBlockedVideos(List<MediaGroup> mediaGroups) {
         if (mediaGroups == null || mediaGroups.isEmpty()) {
             return;
         }
 
         MainUIData mainUIData = MainUIData.instance(getContext());
-        if (mainUIData.getInMemoryChannelBlacklist().isEmpty()) {
+        List<BlocklistRule> rules = mainUIData.getInMemoryChannelBlocklist();
+
+        if (rules.isEmpty()) {
             return;
         }
 
@@ -1186,7 +1189,37 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
             if (group != null && group.getVideos() != null) {
                 List<Video> videosToRemove = new ArrayList<>();
                 for (Video video : group.getVideos()) {
-                    if (video != null && video.channelId != null && mainUIData.getInMemoryChannelBlacklist().contains(video.channelId)) {
+                    if (video == null) {
+                        continue;
+                    }
+                    boolean shouldBlock = false;
+                    for (BlocklistRule rule : rules) {
+                        switch (rule.getType()) {
+                            case CHANNEL_ID:
+                                if (video.channelId != null && video.channelId.equals(rule.getValue())) {
+                                    shouldBlock = true;
+                                }
+                                break;
+                            case TITLE_KEYWORD:
+                                if (video.title != null && video.title.toLowerCase().contains(rule.getValue().toLowerCase())) {
+                                    shouldBlock = true;
+                                }
+                                break;
+                            case DESCRIPTION_KEYWORD:
+                                // Assuming 'details' or 'description' field exists in Video class
+                                // For now, let's assume 'details' as it's common for descriptions.
+                                // This might need adjustment based on the actual Video class structure.
+                                String description = video.details != null ? video.details : (video.description != null ? video.description : "");
+                                if (description.toLowerCase().contains(rule.getValue().toLowerCase())) {
+                                    shouldBlock = true;
+                                }
+                                break;
+                        }
+                        if (shouldBlock) {
+                            break;
+                        }
+                    }
+                    if (shouldBlock) {
                         videosToRemove.add(video);
                     }
                 }

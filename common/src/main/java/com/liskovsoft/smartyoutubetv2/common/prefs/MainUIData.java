@@ -6,6 +6,7 @@ import android.os.Build;
 
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.smartyoutubetv2.common.R;
+import com.liskovsoft.smartyoutubetv2.common.app.models.data.BlocklistRule;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.providers.ContextMenuManager;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.providers.ContextMenuProvider;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AppPrefs.ProfileChangeListener;
@@ -88,8 +89,8 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener 
     };
     @SuppressLint("StaticFieldLeak")
     private static MainUIData sInstance;
-    private String mChannelBlacklistUrl;
-    private Set<String> mInMemoryChannelBlacklist = new HashSet<>();
+    private String mChannelBlocklistUrl;
+    private List<BlocklistRule> mInMemoryChannelBlocklist = new ArrayList<>();
     private final Context mContext;
     private final AppPrefs mPrefs;
     private boolean mIsCardMultilineTitleEnabled;
@@ -513,22 +514,22 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener 
         onDataChange();
     }
 
-    public String getChannelBlacklistUrl() {
-        return mChannelBlacklistUrl;
+    public String getChannelBlocklistUrl() {
+        return mChannelBlocklistUrl;
     }
 
-    public void setChannelBlacklistUrl(String url) {
-        mChannelBlacklistUrl = url;
+    public void setChannelBlocklistUrl(String url) {
+        mChannelBlocklistUrl = url;
         persistState();
-        // Optionally, trigger a blacklist fetch here
+        // Optionally, trigger a blocklist fetch here
     }
 
-    public Set<String> getInMemoryChannelBlacklist() {
-        return mInMemoryChannelBlacklist;
+    public List<BlocklistRule> getInMemoryChannelBlocklist() {
+        return mInMemoryChannelBlocklist;
     }
 
-    public void updateInMemoryChannelBlacklist(Set<String> blacklist) {
-        mInMemoryChannelBlacklist = blacklist;
+    public void updateInMemoryChannelBlocklist(List<BlocklistRule> blocklist) {
+        mInMemoryChannelBlocklist = blocklist;
         onDataChange(); // Notify listeners if needed
     }
 }
