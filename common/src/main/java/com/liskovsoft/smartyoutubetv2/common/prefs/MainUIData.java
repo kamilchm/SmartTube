@@ -15,7 +15,9 @@ import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class MainUIData extends DataChangeBase implements ProfileChangeListener {
     private static final String MAIN_UI_DATA = "main_ui_data2";
@@ -86,6 +88,8 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener 
     };
     @SuppressLint("StaticFieldLeak")
     private static MainUIData sInstance;
+    private String mChannelBlacklistUrl;
+    private Set<String> mInMemoryChannelBlacklist = new HashSet<>();
     private final Context mContext;
     private final AppPrefs mPrefs;
     private boolean mIsCardMultilineTitleEnabled;
@@ -118,6 +122,7 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener 
         mPrefs.addListener(this);
         initColorSchemes();
         restoreState();
+        ChannelBlacklistService.instance(mContext).fetchBlacklist();
     }
 
     public static MainUIData instance(Context context) {
@@ -506,5 +511,24 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener 
     public void onProfileChanged() {
         restoreState();
         onDataChange();
+    }
+
+    public String getChannelBlacklistUrl() {
+        return mChannelBlacklistUrl;
+    }
+
+    public void setChannelBlacklistUrl(String url) {
+        mChannelBlacklistUrl = url;
+        persistState();
+        // Optionally, trigger a blacklist fetch here
+    }
+
+    public Set<String> getInMemoryChannelBlacklist() {
+        return mInMemoryChannelBlacklist;
+    }
+
+    public void updateInMemoryChannelBlacklist(Set<String> blacklist) {
+        mInMemoryChannelBlacklist = blacklist;
+        onDataChange(); // Notify listeners if needed
     }
 }

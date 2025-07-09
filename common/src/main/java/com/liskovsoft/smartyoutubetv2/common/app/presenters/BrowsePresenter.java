@@ -690,6 +690,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                             getView().showProgressBar(false);
 
                             filterHomeIfNeeded(mediaGroups);
+                            filterBlacklistedVideos(mediaGroups);
 
                             for (MediaGroup mediaGroup : mediaGroups) {
                                 if (mediaGroup.isEmpty()) {
@@ -748,6 +749,11 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                             }
 
                             VideoGroup videoGroup = VideoGroup.from(mediaGroup, section, column);
+                            // Apply blacklist filtering for single MediaGroup as well
+                            List<MediaGroup> singleGroupList = new ArrayList<>();
+                            singleGroupList.add(mediaGroup);
+                            filterBlacklistedVideos(singleGroupList);
+
                             appendLocalHistory(videoGroup);
                             getView().updateSection(videoGroup);
                             mBrowseProcessor.process(videoGroup);
@@ -1163,6 +1169,31 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
 
         for (State state : stateService.getStates()) {
             videoGroup.add(0, state.video);
+        }
+    }
+
+    private void filterBlacklistedVideos(List<MediaGroup> mediaGroups) {
+        if (mediaGroups == null || mediaGroups.isEmpty()) {
+            return;
+        }
+
+        MainUIData mainUIData = MainUIData.instance(getContext());
+        if (mainUIData.getInMemoryChannelBlacklist().isEmpty()) {
+            return;
+        }
+
+        for (MediaGroup group : mediaGroups) {
+            if (group != null && group.getVideos() != null) {
+                List<Video> videosToRemove = new ArrayList<>();
+                for (Video video : group.getVideos()) {
+                    if (video != null && video.channelId != null && mainUIData.getInMemoryChannelBlacklist().contains(video.channelId)) {
+                        videosToRemove.add(video);
+                    }
+                }
+                if (!videosToRemove.isEmpty()) {
+                    group.getVideos().removeAll(videosToRemove);
+                }
+            }
         }
     }
 }
